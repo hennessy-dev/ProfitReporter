@@ -1,0 +1,44 @@
+name: GitHub Pages Deploy
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of the GitHub Pages cache
+
+      - name: Use Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: 16
+
+      - name: Cache Node.js modules
+        uses: actions/cache@v2
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build and Deploy
+        run: |
+          npm run build --configuration production
+          mv dist docs
+          git config --global user.email "action@github.com"
+          git config --global user.name "GitHub Action"
+          git -C docs config user.email "action@github.com"
+          git -C docs config user.name "GitHub Action"
+          cd docs
+          git init
+          git add .
+          git commit -m "Update GitHub Pages"
+          git push -f git@github.com:hennessy-dev/ProfitReporter.git main:gh-pages
